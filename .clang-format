@@ -1,0 +1,29 @@
+BasedOnStyle: Microsoft
+
+AllowShortFunctionsOnASingleLine: None
+PointerAlignment: Left
+
+# Line breaks
+BinPackArguments: true
+BreakBeforeBraces: Custom
+BraceWrapping: 
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterNamespace: true
+  AfterFunction: true
+
+# Alignment
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+  AlignCaseArrows: true
+  AlignCaseColons: false
+
+# Indentation
+UseTab: Always
+IndentWidth: 4
+IndentCaseBlocks: true
+IndentCaseLabels: false
+AccessModifierOffset: -4
