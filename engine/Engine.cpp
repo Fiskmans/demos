@@ -68,18 +68,11 @@ void Engine::Update()
 
 void Engine::Paint()
 {
-	int width = 0;
-	int height = 0;
-	SDL_GetWindowSizeInPixels(myWindow, &width, &height);
-	glViewport(0, 0, width, height);
-
 	ImGui_ImplSDLGPU3_NewFrame();
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 
 	SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(myDevice);
-
-	
 
 	OnPaint.Fire(myDevice, commands);
 
