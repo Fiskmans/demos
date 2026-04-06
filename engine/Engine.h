@@ -1,8 +1,9 @@
 #pragma once
 
+#include "GL/gl.h"
+#include "SDL3/SDL.h"
 #include "engine/Module.h"
 #include "imgui.h"
-#include "SDL3/SDL.h"
 #include "tools/Event.h"
 
 #include <chrono>
@@ -13,44 +14,68 @@
 
 class Engine
 {
-    using Clock = std::chrono::steady_clock;
+	using Clock = std::chrono::steady_clock;
+
 public:
-    static constexpr const char* OpenGLVersion = "#version 130";
-    static constexpr int OpenGLMajorVersionNumber = 3;
-    static constexpr int OpenGLMinorVersionNumber = 0;
+	static constexpr const char* OpenGLVersion = "#version 130";
+	static constexpr int OpenGLMajorVersionNumber = 3;
+	static constexpr int OpenGLMinorVersionNumber = 0;
 
-    using TimeDelta = std::chrono::duration<float, std::ratio<1,1>>;
+	struct ImGuiRegistration
+	{
+        ImGuiRegistration() = default;
+        ImGuiRegistration(Engine* aEngine, std::string aName);
+        ImGuiRegistration(const ImGuiRegistration&) = delete;
+        ImGuiRegistration(ImGuiRegistration&& aOther);
+        ImGuiRegistration& operator= (ImGuiRegistration&& aOther);
+		~ImGuiRegistration();
+		Engine* myEngine = nullptr;
+		std::string myName;
+	};
 
-    Engine(SDL_Window* aWindow, SDL_GLContext aContext, std::string aModulesDirectory);
-    ~Engine();
-    
-    bool LoadModule(std::string aName);
+	using TimeDelta = std::chrono::duration<float, std::ratio<1, 1>>;
 
-    void Update();
-    void Paint();
-    void RegisterImgui(std::string aName, std::function<void()> aFunction);
+	Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModulesDirectory);
+	~Engine();
 
-    bool HandleEvent(SDL_Event* aEvent);
+	bool LoadModule(std::string aName);
 
-    fisk::tools::Event<TimeDelta> OnUpdate;
-    fisk::tools::Event<> OnPaint;
+	void Update();
+	void Paint();
+    SDL_NODISCARD
+	ImGuiRegistration RegisterImgui(std::string aName, std::function<void()> aFunction);
+
+	bool HandleEvent(SDL_Event* aEvent);
+
+	fisk::tools::Event<TimeDelta> OnUpdate;
+	fisk::tools::Event<SDL_GPUDevice*, SDL_GPUCommandBuffer*> OnPaint;
+
+    SDL_GPUDevice* GetDevice();
+    SDL_Window* GetWindow();
 
 private:
-    void FindModules(std::string aDirectory);
-    
-    struct ImguiWindow
-    {
-        std::function<void()> myCallback;
-        bool myOpen;
-    };
+	friend ImGuiRegistration;
+	void UnregisterImGui(ImGuiRegistration& aRegistration);
+	void DrawImGui();
+	void FindModules(std::string aDirectory);
 
-    SDL_Window* myWindow;
-    SDL_GLContext myContext;
+	void ImGui();
 
-    Clock::time_point myLastUpdate;
+	struct ImguiWindow
+	{
+		std::function<void()> myCallback;
+		bool myOpen;
+	};
 
-    bool myIsShowingMainWindow;
-    ImVec4 myClearColor;
-    std::unordered_map<std::string, ImguiWindow> myWindows;
-    std::vector<std::unique_ptr<Module>> myModules;
+	SDL_Window* myWindow;
+	SDL_GPUDevice* myDevice;
+
+	Clock::time_point myLastUpdate;
+
+	bool myIsShowingMainWindow;
+	ImVec4 myClearColor;
+	fisk::tools::EventReg myDrawImguiHandle;
+	std::unordered_map<std::string, ImguiWindow> myWindows;
+	std::vector<std::unique_ptr<Module>> myModules;
+    ImGuiRegistration myImGuiHandle;
 };

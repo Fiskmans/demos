@@ -2,8 +2,9 @@
 
 list(APPEND files ChaosModule.cpp)
 list(APPEND files ChaosModule.h)
-list(APPEND files LorenzAttractor.cpp)
-list(APPEND files LorenzAttractor.h)
+list(APPEND files ChaoticPath.h)
+list(APPEND files LorenzSystem.cpp)
+list(APPEND files LorenzSystem.h)
 list(APPEND files ModuleMain.cpp)
 
 add_library(module_chaos SHARED ${files})

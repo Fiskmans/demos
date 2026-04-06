@@ -10,31 +10,55 @@
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
-	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN |
-								  SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_BORDERLESS;
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
+    {
+        printf("Error: SDL_Init(): %s\n", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
 
-	SDL_Window* window = SDL_CreateWindow("Hello World", 800, 600, windowFlags);
+
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
+
+	float scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+
+	if (scale < 0.01f)
+		SDL_Log("Get scale error: %s", SDL_GetError());
+	else
+		SDL_Log("Scale: %f", scale);
+
+	SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
+	if (!device)
+	{
+		SDL_Log("Failed to create gpu device");
+		return SDL_APP_FAILURE;
+	}
+
+	SDL_Window* window = SDL_CreateWindow("Hello World", 1280 * scale, 800 * scale, windowFlags);
 	if (!window)
 	{
 		SDL_Log("Failed to create window");
 		return SDL_APP_FAILURE;
 	}
 
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Engine::OpenGLMajorVersionNumber);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Engine::OpenGLMinorVersionNumber);
+	int w;
+	int h;
 
-    SDL_GLContext glContext = SDL_GL_CreateContext(window);
-	if (!glContext)
-	{
-		SDL_Log("Failed to create glContext");
-		return SDL_APP_FAILURE;
-	}
+	SDL_GetWindowSize(window, &w, &h);
 
-    SDL_GL_MakeCurrent(window, glContext);
-    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_ShowWindow(window);
+	SDL_Log("Window created with size (%d, %d)", w, h);
 
-	*appstate = new App(window, glContext);
+
+
+	SDL_ClaimWindowForGPUDevice(device, window);
+	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	SDL_ShowWindow(window);
+
+	SDL_GetWindowSize(window, &w, &h);
+	SDL_Log("Window shown with size (%d, %d)", w, h);
+
+	*appstate = new App(window, device);
 
 	return SDL_APP_CONTINUE;
 }

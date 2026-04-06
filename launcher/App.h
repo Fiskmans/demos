@@ -7,7 +7,7 @@
 class App
 {
 public:
-    App(SDL_Window* aWindow, SDL_GLContext aContext);
+    App(SDL_Window* aWindow, SDL_GPUDevice* aDevice);
     ~App();
 
     void Update();
@@ -22,5 +22,5 @@ private:
     bool myWantsClose;
     Engine myEngine;
     SDL_Window* myWindow;
-    SDL_GLContext myContext;
+    SDL_GPUDevice* myDevice;
 };

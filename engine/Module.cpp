@@ -79,3 +79,8 @@ void Module::Unload()
     SDL_Log("[Module] %s Unloaded", myName.c_str());
     myIsLoaded = false;
 }
+
+bool Module::IsLoaded()
+{
+	return myIsLoaded;
+}

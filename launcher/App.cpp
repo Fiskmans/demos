@@ -1,19 +1,19 @@
 #include "App.h"
 
-App::App(SDL_Window* aWindow, SDL_GLContext aContext)
-    : myEngine(aWindow, aContext, "./")
+App::App(SDL_Window* aWindow, SDL_GPUDevice* aDevice)
+    : myEngine(aWindow, aDevice, "./")
 {
     myWantsClose = false;
     myWindow = aWindow;
-    myContext = aContext;
+    myDevice = aDevice;
 
     myEngine.LoadModule("Chaos");
 }
 
 App::~App()
 {
-    SDL_GL_DestroyContext(myContext);
-    myContext = nullptr;
+    SDL_DestroyGPUDevice(myDevice);
+    myDevice = nullptr;
 
     SDL_DestroyWindow(myWindow);
     myWindow = nullptr;

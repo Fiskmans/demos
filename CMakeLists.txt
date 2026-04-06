@@ -5,6 +5,7 @@ project(demos)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+set(BUILD_SHARED_LIBS ON)
 
 
 Include(FetchContent)
@@ -18,13 +19,13 @@ FetchContent_Declare(
 FetchContent_Declare(
   fisk_tools
   GIT_REPOSITORY https://github.com/Fiskmans/fisk_tools.git
-  GIT_TAG        fc7dfbceaefd9e0a864081a6c53216fc15d84b6a
+  GIT_TAG        afd2fc434ec186d7fd36ef3c2459c1a37e5c50c0
 )
 
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG        29fadad1939ab62adcc5cd9339db7a784de90120
+  GIT_TAG        49df3116bc5884f58031fd4bb8653e27e4044c96
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
 )

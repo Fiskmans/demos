@@ -23,8 +23,10 @@ public:
     const std::string& Name() const { return myName; }
     bool Load(Engine* aEngine);
     void Unload();
+    bool IsLoaded();
 
 private:
+
     std::string myName;
     void* myHandle;
     LoadHook* myLoadHook;

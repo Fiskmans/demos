@@ -15,10 +15,10 @@ list(APPEND files "imgui_tree.h")
 list(APPEND files "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp")
 list(APPEND files "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.h")
 
-list(APPEND files "${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp")
-list(APPEND files "${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h")
 list(APPEND files "${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp")
 list(APPEND files "${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.h")
+list(APPEND files "${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.cpp")
+list(APPEND files "${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.h")
 
 add_library(imgui_wrapper ${files})
 
