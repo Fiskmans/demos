@@ -19,8 +19,7 @@ public:
 
 private:
 
-    bool myWantsClose;
-    Engine myEngine;
+    Engine* myEngine;
     SDL_Window* myWindow;
     SDL_GPUDevice* myDevice;
 };

@@ -48,7 +48,7 @@ public:
 	bool HandleEvent(SDL_Event* aEvent);
 
 	fisk::tools::Event<TimeDelta> OnUpdate;
-	fisk::tools::Event<SDL_GPUDevice*, SDL_GPUCommandBuffer*> OnPaint;
+	fisk::tools::Event<SDL_GPUDevice*, SDL_GPUCommandBuffer*, SDL_GPUTexture*> OnPaint;
 
     SDL_GPUDevice* GetDevice();
     SDL_Window* GetWindow();

@@ -1,17 +1,19 @@
 #include "App.h"
 
 App::App(SDL_Window* aWindow, SDL_GPUDevice* aDevice)
-    : myEngine(aWindow, aDevice, "./")
 {
-    myWantsClose = false;
+    myEngine = new Engine(aWindow, aDevice, "./");
     myWindow = aWindow;
     myDevice = aDevice;
 
-    myEngine.LoadModule("Chaos");
+    //myEngine.LoadModule("Triangle");
 }
 
 App::~App()
 {
+    delete myEngine;
+    myEngine = nullptr;
+
     SDL_DestroyGPUDevice(myDevice);
     myDevice = nullptr;
 
@@ -21,12 +23,12 @@ App::~App()
 
 void App::Update()
 {
-    myEngine.Update();
+    myEngine->Update();
 }
 
 void App::Paint()
 {
-    myEngine.Paint();
+    myEngine->Paint();
     SDL_GL_SwapWindow(myWindow);
 }
 
@@ -38,16 +40,20 @@ bool App::Event(SDL_Event* aEvent)
             Close();
             break;
     }
+    
+    if (WantsClose())
+        return false;
 
-    return myEngine.HandleEvent(aEvent);
+    return myEngine->HandleEvent(aEvent);
 }
 
 bool App::WantsClose()
 {
-    return myWantsClose;
+    return !myEngine;
 }
 
 void App::Close()
 {
-    myWantsClose = true;
+    delete myEngine;
+    myEngine = nullptr;
 }

@@ -39,6 +39,12 @@ Engine::Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModules
 
 Engine::~Engine()
 {
+	for (std::unique_ptr<Module>& mod : myModules)
+	{
+		if (mod->IsLoaded())
+			mod->Unload();
+	}
+
 	SDL_WaitForGPUIdle(myDevice);
 	ImGui_ImplSDLGPU3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
@@ -78,35 +84,35 @@ void Engine::Paint()
 	ImGui::NewFrame();
 
 	SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(myDevice);
+	SDL_GPUTexture* swapchainTexture;
+	SDL_AcquireGPUSwapchainTexture(commands, myWindow, &swapchainTexture, nullptr, nullptr);
 
+	if (swapchainTexture) // Theres nothing to render to, i.e minimized or similar
+	{
+		OnPaint.Fire(myDevice, commands, swapchainTexture);
 	
-
-	OnPaint.Fire(myDevice, commands);
-
-	ImGuiIO& io = ImGui::GetIO();
-	ImGui::Render();
+		ImGui::Render();
+		
+		ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), commands);
 	
-	SDL_GPUTexture* swapchanTexture;
-	SDL_WaitAndAcquireGPUSwapchainTexture(commands, myWindow, &swapchanTexture, nullptr, nullptr);
-	ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), commands);
+		SDL_GPUColorTargetInfo target_info = {};
+		target_info.texture = swapchainTexture;
+		target_info.clear_color = SDL_FColor { myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w };
+		target_info.load_op = SDL_GPU_LOADOP_LOAD;
+		target_info.store_op = SDL_GPU_STOREOP_STORE;
+		target_info.mip_level = 0;
+		target_info.layer_or_depth_plane = 0;
+		target_info.cycle = false;
+		SDL_GPURenderPass* imGuiRenderPass = SDL_BeginGPURenderPass(commands, &target_info, 1, nullptr);
 	
-
-	// Setup and start a render pass
-	SDL_GPUColorTargetInfo target_info = {};
-	target_info.texture = swapchanTexture;
-	target_info.clear_color = SDL_FColor { myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w };
-	target_info.load_op = SDL_GPU_LOADOP_LOAD;
-	target_info.store_op = SDL_GPU_STOREOP_STORE;
-	target_info.mip_level = 0;
-	target_info.layer_or_depth_plane = 0;
-	target_info.cycle = false;
-	SDL_GPURenderPass* imGuiRenderPass = SDL_BeginGPURenderPass(commands, &target_info, 1, nullptr);
-
-	ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(),commands, imGuiRenderPass);
-
-	SDL_EndGPURenderPass(imGuiRenderPass);
+		ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(),commands, imGuiRenderPass);
+	
+		SDL_EndGPURenderPass(imGuiRenderPass);
+	}
 
 	SDL_SubmitGPUCommandBuffer(commands);
+
+	ImGui::EndFrame();
 }
 
 Engine::ImGuiRegistration Engine::RegisterImgui(std::string aName, std::function<void()> aFunction)
