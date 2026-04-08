@@ -22,6 +22,7 @@ private:
 
     void Plot(const char* aLabel, std::function<ImVec2(Vec3)> aReduction, ImVec2 aSize = {0,0});
 
+    int myTailLength;
     float s;
     float p;
     float b;
