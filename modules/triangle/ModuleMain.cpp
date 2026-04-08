@@ -10,10 +10,7 @@ static TriangleModule* triangleModule = nullptr;
 
 extern "C" {
 
-    const char* EngineModule_Name()
-    {
-        return "Triangle";
-    }
+    const char* EngineModule_Name =  "Triangle";
 
     bool EngineModule_Load(int aEngineVersion, Engine* aEngine)
     {
