@@ -6,6 +6,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include <chrono>
+#include <thread>
+
 #include "launcher/App.h"
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -57,7 +60,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
 	SDL_GetWindowSize(window, &w, &h);
 	SDL_Log("Window shown with size (%d, %d)", w, h);
-
+	
 	*appstate = new App(window, device);
 
 	return SDL_APP_CONTINUE;

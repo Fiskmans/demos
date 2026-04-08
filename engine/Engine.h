@@ -56,7 +56,7 @@ public:
 private:
 	friend ImGuiRegistration;
 	void UnregisterImGui(ImGuiRegistration& aRegistration);
-	void DrawImGui();
+	void DrawImGui(SDL_GPUDevice* aDevice, SDL_GPUCommandBuffer* aCommandBuffer, SDL_GPUTexture* aBackBuffer);
 	void FindModules(std::string aDirectory);
 
 	void ImGui();

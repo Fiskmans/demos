@@ -6,80 +6,40 @@
 TriangleModule::TriangleModule(Engine* aEngine)
 {
 	myEngine = aEngine;
+	myNeedsVertexUpload = true;
 
-	myUpdateHandle = aEngine->OnUpdate.Register(std::bind(&TriangleModule::Update, this, std::placeholders::_1));
-	//myPaintHandle = aEngine->OnPaint.Register(
-	//	std::bind(&TriangleModule::Paint, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	myImGuiHandle = aEngine->RegisterImgui("Triangle", std::bind(&TriangleModule::ImGui, this));
-	float vertices[]{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
-	return;
 	SDL_GPUDevice* device = aEngine->GetDevice();
-	
+
+	myTri = {.myA{.myPos{-0.5f, -0.5f, 0.0f, 1.0f}, .myColor{1, 0, 0, 1.0f}},
+			 .myB{.myPos{0.5f, -0.5f, 0.0f, 1.0f}, .myColor{0, 1, 0, 1.0f}},
+			 .myC{.myPos{0.0f, 0.5f, 0.0f, 1.0f}, .myColor{0, 0, 1, 1.0f}}};
+
 	SDL_GPUBufferCreateInfo bufferInfo;
-	
+
 	bufferInfo.props = 0;
-	bufferInfo.size = sizeof(vertices);
+	bufferInfo.size = Tri::SerializedSize;
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-	
+
 	myVertexBuffer = SDL_CreateGPUBuffer(device, &bufferInfo);
-	
+
 	if (!myVertexBuffer)
 	{
 		SDL_Log("Failed to create vertex buffer: %s", SDL_GetError());
 		return;
 	}
-	
-	SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device);
-	
-	if (!commands)
-	{
-		SDL_Log("Failed to acquire command buffer: %s", SDL_GetError());
-		return;
-	}
-	
+
 	SDL_GPUTransferBufferCreateInfo transferInfo;
-	
-	transferInfo.size = sizeof(vertices);
+
+	transferInfo.size = Tri::SerializedSize;
 	transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-	
-	SDL_GPUTransferBuffer* transferbuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
-	if (!transferbuffer)
+
+	myVertexTransferBuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+	if (!myVertexTransferBuffer)
 	{
 		SDL_Log("Failed to create transferbuffer: %s", SDL_GetError());
 		return;
 	}
-	
-	void* transferMemory = SDL_MapGPUTransferBuffer(device, transferbuffer, false);
-	if (!transferMemory)
-	{
-		SDL_Log("Failed to map transferbuffer: %s", SDL_GetError());
-		return;
-	}
-	
-	memcpy(transferMemory, vertices, sizeof(vertices));
-	SDL_UnmapGPUTransferBuffer(device, transferbuffer);
-	
-	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commands);
-	
-	SDL_GPUTransferBufferLocation transferLocation;
-	
-	transferLocation.transfer_buffer = transferbuffer;
-	transferLocation.offset = 0;
-	
-	SDL_GPUBufferRegion bufferRegion;
-	
-	bufferRegion.buffer = myVertexBuffer;
-	bufferRegion.offset = 0;
-	
-	SDL_UploadToGPUBuffer(copyPass, &transferLocation, &bufferRegion, false);
-	SDL_EndGPUCopyPass(copyPass);
-	
-	if (!SDL_SubmitGPUCommandBuffer(commands))
-	{
-		SDL_Log("Failed to submit triangle setup commands: %s", SDL_GetError());
-		return;
-	}
-	
+
 	SDL_GPUShader* vertexShader;
 	SDL_GPUShader* fragmentShader;
 	{
@@ -91,7 +51,7 @@ TriangleModule::TriangleModule(Engine* aEngine)
 			SDL_Log("Failed to load vertex shader file: %s", SDL_GetError());
 			return;
 		}
-		
+
 		SDL_GPUShaderCreateInfo vertexShaderInfo{.code_size = vertexShaderFileSize,
 												 .code = reinterpret_cast<const Uint8*>(vertexShaderFileData),
 												 .entrypoint = "main",
@@ -146,12 +106,16 @@ TriangleModule::TriangleModule(Engine* aEngine)
 
 	{
 		SDL_GPUVertexBufferDescription vertexBufferDesc{.slot = 0,
-														.pitch = sizeof(float) * 3,
+														.pitch = Vertex::SerializedSize,
 														.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
 														.instance_step_rate = 0};
 
-		SDL_GPUVertexAttribute vertexBufferAttributes{
-			.location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, .offset = 0};
+		SDL_GPUVertexAttribute vertexBufferAttributes[2] = {
+			{.location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = 0},
+			{.location = 1,
+			 .buffer_slot = 0,
+			 .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			 .offset = sizeof(float) * 4}};
 
 		SDL_GPUColorTargetDescription colorTargetDesc{
 			.format = SDL_GetGPUSwapchainTextureFormat(device, aEngine->GetWindow()), .blend_state{}};
@@ -162,8 +126,8 @@ TriangleModule::TriangleModule(Engine* aEngine)
 			.vertex_input_state{.vertex_buffer_descriptions = &vertexBufferDesc,
 								.num_vertex_buffers = 1,
 
-								.vertex_attributes = &vertexBufferAttributes,
-								.num_vertex_attributes = 1},
+								.vertex_attributes = vertexBufferAttributes,
+								.num_vertex_attributes = 2},
 			.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
 			.target_info{.color_target_descriptions = &colorTargetDesc,
 						 .num_color_targets = 1,
@@ -177,13 +141,20 @@ TriangleModule::TriangleModule(Engine* aEngine)
 		}
 	}
 
-	SDL_ReleaseGPUTransferBuffer(device, transferbuffer);
+	SDL_ReleaseGPUShader(device, vertexShader);
+	SDL_ReleaseGPUShader(device, fragmentShader);
+
+	myUpdateHandle = aEngine->OnUpdate.Register(std::bind(&TriangleModule::Update, this, std::placeholders::_1));
+	myPaintHandle = aEngine->OnPaint.Register(
+		std::bind(&TriangleModule::Paint, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	myImGuiHandle = aEngine->RegisterImgui("Triangle", std::bind(&TriangleModule::ImGui, this));
 }
 
 TriangleModule::~TriangleModule()
 {
 	SDL_ReleaseGPUBuffer(myEngine->GetDevice(), myVertexBuffer);
 	SDL_ReleaseGPUGraphicsPipeline(myEngine->GetDevice(), myGraphicsPipeline);
+	SDL_ReleaseGPUTransferBuffer(myEngine->GetDevice(), myVertexTransferBuffer);
 }
 
 void TriangleModule::Update(Engine::TimeDelta aDelta)
@@ -192,6 +163,12 @@ void TriangleModule::Update(Engine::TimeDelta aDelta)
 
 void TriangleModule::Paint(SDL_GPUDevice* aDevice, SDL_GPUCommandBuffer* aCommandBuffer, SDL_GPUTexture* aSwapTexture)
 {
+	if (myNeedsVertexUpload)
+	{
+		UploadVertexBuffer(aCommandBuffer);
+		myNeedsVertexUpload = false;
+	}
+
 	SDL_GPUColorTargetInfo colorInfo{
 		.texture = aSwapTexture, .load_op = SDL_GPU_LOADOP_LOAD, .store_op = SDL_GPU_STOREOP_STORE};
 
@@ -207,5 +184,96 @@ void TriangleModule::Paint(SDL_GPUDevice* aDevice, SDL_GPUCommandBuffer* aComman
 
 void TriangleModule::ImGui()
 {
-	ImGui::TextUnformatted("Triangle :()");
+	if (myTri.ImGui())
+		myNeedsVertexUpload = true;
+}
+
+void TriangleModule::UploadVertexBuffer(SDL_GPUCommandBuffer* aCommandBuffer)
+{
+	void* transferMemory = SDL_MapGPUTransferBuffer(myEngine->GetDevice(), myVertexTransferBuffer, true);
+	if (!transferMemory)
+	{
+		SDL_Log("Failed to map transferbuffer: %s", SDL_GetError());
+		return;
+	}
+
+	std::byte* writeHead = reinterpret_cast<std::byte*>(transferMemory);
+	myTri.Serialize(writeHead);
+
+	float* rawView = reinterpret_cast<float*>(transferMemory);
+
+	std::string msg = "[";
+
+	for (size_t i = 0; i < 5 * 3; i++)
+	{
+		msg += std::to_string(rawView[i]).substr(0,4) + ",";
+	}
+	msg += "]";
+	SDL_Log("Updated vertexbuffer: %s", msg.c_str());
+
+	SDL_UnmapGPUTransferBuffer(myEngine->GetDevice(), myVertexTransferBuffer);
+
+	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(aCommandBuffer);
+	if (!copyPass)
+	{
+		SDL_Log("Failed to create copy pass: %s", SDL_GetError());
+		return;
+	}
+	
+	SDL_GPUTransferBufferLocation transferLocation;
+
+	transferLocation.transfer_buffer = myVertexTransferBuffer;
+	transferLocation.offset = 0;
+
+	SDL_GPUBufferRegion bufferRegion;
+
+	bufferRegion.buffer = myVertexBuffer;
+	bufferRegion.offset = 0;
+
+	SDL_UploadToGPUBuffer(copyPass, &transferLocation, &bufferRegion, false);
+	SDL_EndGPUCopyPass(copyPass);
+}
+
+void TriangleModule::Tri::Serialize(std::byte*& aInOutDestination)
+{
+	myA.Serialize(aInOutDestination);
+	myB.Serialize(aInOutDestination);
+	myC.Serialize(aInOutDestination);
+}
+
+bool TriangleModule::Tri::ImGui()
+{
+	bool r = false;
+	ImGui::PushID(this);
+	ImGui::TextUnformatted("A");
+	r |= myA.ImGui();
+	ImGui::TextUnformatted("B");
+	r |= myB.ImGui();
+	ImGui::TextUnformatted("C");
+	r |= myC.ImGui();
+	ImGui::PopID();
+
+	return r;
+}
+
+void TriangleModule::Vertex::Serialize(std::byte*& aInOutDestination)
+{
+	TriangleModule::SerializeVar(aInOutDestination, myPos[0]);
+	TriangleModule::SerializeVar(aInOutDestination, myPos[1]);
+	TriangleModule::SerializeVar(aInOutDestination, myPos[2]);
+	TriangleModule::SerializeVar(aInOutDestination, myPos[3]);
+	TriangleModule::SerializeVar(aInOutDestination, myColor[0]);
+	TriangleModule::SerializeVar(aInOutDestination, myColor[1]);
+	TriangleModule::SerializeVar(aInOutDestination, myColor[2]);
+	TriangleModule::SerializeVar(aInOutDestination, myColor[3]);
+}
+
+bool TriangleModule::Vertex::ImGui()
+{
+	bool r = false;
+	ImGui::PushID(this);
+	r |= ImGui::DragFloat2("Pos", myPos, 0.01f, -1.f, 1.f);
+	r |= ImGui::ColorEdit3("Color", myColor);
+	ImGui::PopID();
+	return r;
 }

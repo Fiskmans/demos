@@ -5,8 +5,6 @@ App::App(SDL_Window* aWindow, SDL_GPUDevice* aDevice)
     myEngine = new Engine(aWindow, aDevice, "./");
     myWindow = aWindow;
     myDevice = aDevice;
-
-    //myEngine.LoadModule("Triangle");
 }
 
 App::~App()
