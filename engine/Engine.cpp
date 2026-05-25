@@ -15,6 +15,7 @@ Engine::Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModules
 	myWindow = aWindow;
 	myDevice = aDevice;
 	myIsShowingMainWindow = true;
+	myWantsClose = false;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -49,6 +50,16 @@ Engine::~Engine()
 	ImGui_ImplSDLGPU3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
+}
+
+bool Engine::WantsClose()
+{
+	return myWantsClose;
+}
+
+void Engine::Shutdown()
+{
+	myWantsClose = true;
 }
 
 bool Engine::LoadModule(std::string aName)

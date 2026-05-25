@@ -45,6 +45,7 @@ private:
 
     Tri myTri;
 
+    std::chrono::microseconds myTimeLeft;
     Engine* myEngine = nullptr;
 
     SDL_GPUBuffer* myVertexBuffer = nullptr;

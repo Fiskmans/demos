@@ -9,13 +9,15 @@ class ChaosModule
 {
 public:
     ChaosModule(Engine* aEngine);
-    ~ChaosModule() = default;
+    ~ChaosModule();
 
     void Update(Engine::TimeDelta aDelta);
     void Paint(SDL_GPUDevice* aDevice, SDL_GPUCommandBuffer* aCommandBuffer);
     void ImGui();
     
 private:
+    Engine* myEngine;
+    SDL_GPUGraphicsPipeline* myPipeline;
 
     int myUpdatesPerFrame = 0;
     std::unordered_map<std::string, std::unique_ptr<ChaoticPath>> myPaths;

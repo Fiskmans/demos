@@ -5,6 +5,7 @@ App::App(SDL_Window* aWindow, SDL_GPUDevice* aDevice)
     myEngine = new Engine(aWindow, aDevice, "./");
     myWindow = aWindow;
     myDevice = aDevice;
+    myIsReadyToUpdate = false;
 }
 
 App::~App()
@@ -34,8 +35,14 @@ bool App::Event(SDL_Event* aEvent)
 {
     switch(aEvent->type)
     {
-        case SDL_EventType::SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+        case SDL_EVENT_QUIT:
             Close();
+            break;
+        case SDL_EVENT_WINDOW_SHOWN:
+            SDL_Log("Window shown");
+            myEngine->LoadModule("Triangle");
+            myIsReadyToUpdate = true;
             break;
     }
     
@@ -47,11 +54,17 @@ bool App::Event(SDL_Event* aEvent)
 
 bool App::WantsClose()
 {
-    return !myEngine;
+    return !myEngine || myEngine->WantsClose();
 }
 
 void App::Close()
 {
     delete myEngine;
     myEngine = nullptr;
+    SDL_Log("App closed");
+}
+
+bool App::IsReady()
+{
+	return myIsReadyToUpdate;
 }

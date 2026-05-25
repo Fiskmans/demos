@@ -4,6 +4,8 @@ list(APPEND files Engine.cpp)
 list(APPEND files Engine.h)
 list(APPEND files Module.cpp)
 list(APPEND files Module.h)
+list(APPEND files SDLHelper.cpp)
+list(APPEND files SDLHelper.h)
 
 find_package(OpenGL REQUIRED)
 

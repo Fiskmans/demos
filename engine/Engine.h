@@ -38,6 +38,9 @@ public:
 	Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModulesDirectory);
 	~Engine();
 
+	bool WantsClose();
+
+	void Shutdown();
 	bool LoadModule(std::string aName);
 
 	void Update();
@@ -73,6 +76,7 @@ private:
 	Clock::time_point myLastUpdate;
 
 	bool myIsShowingMainWindow;
+	bool myWantsClose;
 	ImVec4 myClearColor;
 	fisk::tools::EventReg myDrawImguiHandle;
 	std::unordered_map<std::string, ImguiWindow> myWindows;
