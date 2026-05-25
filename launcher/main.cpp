@@ -16,9 +16,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
         return SDL_APP_FAILURE;
     }
 
-
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
 	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
 
 	float scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
@@ -49,15 +46,19 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
 	SDL_Log("Window created with size (%d, %d)", w, h);
 
-
-
-	SDL_ClaimWindowForGPUDevice(device, window);
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	SDL_ShowWindow(window);
 
 	SDL_GetWindowSize(window, &w, &h);
 	SDL_Log("Window shown with size (%d, %d)", w, h);
 
+
+	if (!SDL_ClaimWindowForGPUDevice(device, window))
+	{
+		SDL_Log("Failed to claim window: %s", SDL_GetError());
+		return SDL_APP_FAILURE;
+	}
+	
 	*appstate = new App(window, device);
 
 	return SDL_APP_CONTINUE;

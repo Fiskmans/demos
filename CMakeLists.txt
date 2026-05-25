@@ -19,7 +19,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   fisk_tools
   GIT_REPOSITORY https://github.com/Fiskmans/fisk_tools.git
-  GIT_TAG        d83b5bbc68ddb1aae87943bf44620fd4bec9d22f
+  GIT_TAG        55d55c201051cd53fe1a13d2fb81a53da7989c19
 )
 
 FetchContent_Declare(
