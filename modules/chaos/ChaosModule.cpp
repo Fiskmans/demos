@@ -8,11 +8,28 @@
 #include "imgui.h"
 #include "GL/gl.h"
 
+#include "engine/SDLHelper.h"
+
 ChaosModule::ChaosModule(Engine* aEngine)
 {
+	myEngine = aEngine;
+	
+	myPipeline = SDLHelper::MakeSimplePipeline(aEngine->GetDevice(), aEngine->GetWindow(), "shaders/chaos/Vertex.spv", "shaders/chaos/Fragment.spv", {}, {}, {}, SDL_GPU_PRIMITIVETYPE_LINESTRIP);
+	
+	if (!myPipeline)
+	{
+		SDL_Log("Failed to make simple pipleine: %s", SDL_GetError());
+		return;
+	}
+	
 	myUpdateHandle = aEngine->OnUpdate.Register(std::bind(&ChaosModule::Update, this, std::placeholders::_1));
 	myPaintHandle = aEngine->OnPaint.Register(std::bind(&ChaosModule::Paint, this, std::placeholders::_1, std::placeholders::_2));
 	myImGuiHandle = aEngine->RegisterImgui("Chaos", std::bind(&ChaosModule::ImGui, this));
+}
+
+ChaosModule::~ChaosModule()
+{
+	SDL_ReleaseGPUGraphicsPipeline(myEngine->GetDevice(), myPipeline);
 }
 
 void ChaosModule::Update(Engine::TimeDelta aDelta)

@@ -38,6 +38,9 @@ public:
 	Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModulesDirectory);
 	~Engine();
 
+	bool WantsClose();
+
+	void Shutdown();
 	bool LoadModule(std::string aName);
 
 	void Update();
@@ -48,7 +51,7 @@ public:
 	bool HandleEvent(SDL_Event* aEvent);
 
 	fisk::tools::Event<TimeDelta> OnUpdate;
-	fisk::tools::Event<SDL_GPUDevice*, SDL_GPUCommandBuffer*> OnPaint;
+	fisk::tools::Event<SDL_GPUDevice*, SDL_GPUCommandBuffer*, SDL_GPUTexture*> OnPaint;
 
     SDL_GPUDevice* GetDevice();
     SDL_Window* GetWindow();
@@ -56,7 +59,7 @@ public:
 private:
 	friend ImGuiRegistration;
 	void UnregisterImGui(ImGuiRegistration& aRegistration);
-	void DrawImGui();
+	void DrawImGui(SDL_GPUDevice* aDevice, SDL_GPUCommandBuffer* aCommandBuffer, SDL_GPUTexture* aBackBuffer);
 	void FindModules(std::string aDirectory);
 
 	void ImGui();
@@ -73,6 +76,7 @@ private:
 	Clock::time_point myLastUpdate;
 
 	bool myIsShowingMainWindow;
+	bool myWantsClose;
 	ImVec4 myClearColor;
 	fisk::tools::EventReg myDrawImguiHandle;
 	std::unordered_map<std::string, ImguiWindow> myWindows;

@@ -30,9 +30,9 @@ std::optional<std::unique_ptr<Module>> Module::TryLoadFrom(std::string aLibFile)
     }
     std::string name = aLibFile;
 
-    void* nameFunc = dlsym(handle, "EngineModule_Name");
-    if (nameFunc)
-        name = reinterpret_cast<const char*(*)()>(nameFunc)();
+    void* namePtr = dlsym(handle, "EngineModule_Name");
+    if (namePtr)
+        name = *reinterpret_cast<const char**>(namePtr);
     
     return std::make_unique<Module>(name, handle, reinterpret_cast<LoadHook*>(load), reinterpret_cast<UnloadHook*>(unload));
 }

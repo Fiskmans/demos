@@ -10,10 +10,7 @@ static ChaosModule* chaosModule = nullptr;
 
 extern "C" {
 
-    const char* EngineModule_Name()
-    {
-        return "Chaos";
-    }
+    const char* EngineModule_Name = "Chaos";
 
     bool EngineModule_Load(int aEngineVersion, Engine* aEngine)
     {

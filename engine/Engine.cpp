@@ -15,6 +15,7 @@ Engine::Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModules
 	myWindow = aWindow;
 	myDevice = aDevice;
 	myIsShowingMainWindow = true;
+	myWantsClose = false;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -32,17 +33,33 @@ Engine::Engine(SDL_Window* aWindow, SDL_GPUDevice* aDevice, std::string aModules
 
 	FindModules(aModulesDirectory);
 	myLastUpdate = Clock::now();
-	myDrawImguiHandle = OnPaint.Register(std::bind(&Engine::DrawImGui, this));
+	myDrawImguiHandle = OnPaint.Register(std::bind(&Engine::DrawImGui, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 	myImGuiHandle = RegisterImgui("Engine", std::bind(&Engine::ImGui, this));
 }
 
 Engine::~Engine()
 {
+	for (std::unique_ptr<Module>& mod : myModules)
+	{
+		if (mod->IsLoaded())
+			mod->Unload();
+	}
+
 	SDL_WaitForGPUIdle(myDevice);
 	ImGui_ImplSDLGPU3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
+}
+
+bool Engine::WantsClose()
+{
+	return myWantsClose;
+}
+
+void Engine::Shutdown()
+{
+	myWantsClose = true;
 }
 
 bool Engine::LoadModule(std::string aName)
@@ -73,33 +90,35 @@ void Engine::Paint()
 	ImGui::NewFrame();
 
 	SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(myDevice);
+	SDL_GPUTexture* swapchainTexture;
+	SDL_AcquireGPUSwapchainTexture(commands, myWindow, &swapchainTexture, nullptr, nullptr);
 
-	OnPaint.Fire(myDevice, commands);
+	if (swapchainTexture) // Theres nothing to render to, i.e minimized or similar
+	{
 
-	ImGuiIO& io = ImGui::GetIO();
-	ImGui::Render();
-	
-	SDL_GPUTexture* swapchanTexture;
-	SDL_WaitAndAcquireGPUSwapchainTexture(commands, myWindow, &swapchanTexture, nullptr, nullptr);
-	ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), commands);
-	
+		SDL_GPUColorTargetInfo clearInfo{
+			.texture = swapchainTexture,
+			.clear_color{
+				.r = myClearColor.x,
+				.g = myClearColor.y,
+				.b = myClearColor.z,
+				.a = 1.f
+			},
+			.load_op = SDL_GPU_LOADOP_CLEAR,
+			.store_op = SDL_GPU_STOREOP_STORE
+		};
+		SDL_GPURenderPass* clearPass = SDL_BeginGPURenderPass(commands, &clearInfo, 1, nullptr);
+		if (clearPass)
+			SDL_EndGPURenderPass(clearPass);
+		else
+			SDL_Log("Failed to clear screen: %s", SDL_GetError());
 
-	// Setup and start a render pass
-	SDL_GPUColorTargetInfo target_info = {};
-	target_info.texture = swapchanTexture;
-	target_info.clear_color = SDL_FColor { myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w };
-	target_info.load_op = SDL_GPU_LOADOP_LOAD;
-	target_info.store_op = SDL_GPU_STOREOP_STORE;
-	target_info.mip_level = 0;
-	target_info.layer_or_depth_plane = 0;
-	target_info.cycle = false;
-	SDL_GPURenderPass* imGuiRenderPass = SDL_BeginGPURenderPass(commands, &target_info, 1, nullptr);
 
-	ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(),commands, imGuiRenderPass);
-
-	SDL_EndGPURenderPass(imGuiRenderPass);
+		OnPaint.Fire(myDevice, commands, swapchainTexture);
+	}
 
 	SDL_SubmitGPUCommandBuffer(commands);
+
 }
 
 Engine::ImGuiRegistration Engine::RegisterImgui(std::string aName, std::function<void()> aFunction)
@@ -146,27 +165,48 @@ void Engine::UnregisterImGui(ImGuiRegistration& aRegistration)
 	myWindows.erase(aRegistration.myName);
 }
 
-void Engine::DrawImGui()
+void Engine::DrawImGui(SDL_GPUDevice* aDevice, SDL_GPUCommandBuffer* aCommandBuffer, SDL_GPUTexture* aBackBuffer)
 {
-	if (myIsShowingMainWindow)
+	ImGui_ImplSDLGPU3_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
+	
 	{
-		if (ImGui::Begin("Windows", &myIsShowingMainWindow))
+		ImGui::Begin("Windows", &myIsShowingMainWindow);
+		for (auto& [key, window] : myWindows)
 		{
-			for (auto& [key, window] : myWindows)
-			{
+			if (myIsShowingMainWindow)
 				ImGui::Checkbox(key.c_str(), &window.myOpen);
 
-				if (window.myOpen)
-				{
-					if (ImGui::Begin(key.c_str(), &window.myOpen))
-						window.myCallback();
+			if (window.myOpen)
+			{
+				if (ImGui::Begin(key.c_str(), &window.myOpen))
+					window.myCallback();
 
-					ImGui::End();
-				}
+				ImGui::End();
 			}
 		}
 		ImGui::End();
 	}
+
+	ImGui::Render();
+	
+	ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), aCommandBuffer);
+
+	SDL_GPUColorTargetInfo target_info = {};
+	target_info.texture = aBackBuffer;
+	target_info.clear_color = SDL_FColor { myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w };
+	target_info.load_op = SDL_GPU_LOADOP_LOAD;
+	target_info.store_op = SDL_GPU_STOREOP_STORE;
+	target_info.mip_level = 0;
+	target_info.layer_or_depth_plane = 0;
+	target_info.cycle = false;
+	SDL_GPURenderPass* imGuiRenderPass = SDL_BeginGPURenderPass(aCommandBuffer, &target_info, 1, nullptr);
+
+	ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), aCommandBuffer, imGuiRenderPass);
+
+	SDL_EndGPURenderPass(imGuiRenderPass);
+	ImGui::EndFrame();
 }
 
 void Engine::FindModules(std::string aDirectory)

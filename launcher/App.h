@@ -17,10 +17,12 @@ public:
     bool WantsClose();
     void Close();
 
+    bool IsReady();
+
 private:
 
-    bool myWantsClose;
-    Engine myEngine;
+    bool myIsReadyToUpdate;
+    Engine* myEngine;
     SDL_Window* myWindow;
     SDL_GPUDevice* myDevice;
 };
